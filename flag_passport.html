@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="フラッグ旅券">
+<meta name="theme-color" content="#13313A">
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'%3E%3Crect width='180' height='180' fill='%2313313A'/%3E%3Ccircle cx='90' cy='90' r='62' fill='none' stroke='%23C9A227' stroke-width='5'/%3E%3Cpath d='M90 40 L100 80 L140 90 L100 100 L90 140 L80 100 L40 90 L80 80 Z' fill='%23C9A227'/%3E%3C/svg%3E">
+<title>フラッグ旅券 - 国旗パズル</title>
+<style>
+  :root{
+    --ink-navy:#13313A;
+    --ink-deep:#0B2128;
+    --paper:#EFE6D2;
+    --paper-edge:#DCCDA8;
+    --gold:#C9A227;
+    --stamp-green:#2F6B4F;
+    --stamp-red:#A6402F;
+    --text-dark:#1B2A2E;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{
+    margin:0; height:100%; overscroll-behavior:none;
+    background:var(--ink-deep);
+    font-family:'Helvetica Neue', 'Hiragino Sans', sans-serif;
+    color:var(--text-dark);
+    -webkit-font-smoothing:antialiased;
+  }
+  body{
+    background:
+      radial-gradient(circle at 20% 10%, rgba(201,162,39,0.08), transparent 40%),
+      radial-gradient(circle at 80% 90%, rgba(201,162,39,0.06), transparent 45%),
+      linear-gradient(160deg, var(--ink-navy), var(--ink-deep));
+    min-height:100vh;
+    display:flex; align-items:center; justify-content:center;
+    padding: max(16px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right)) max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+  }
+  .device{
+    width:100%; max-width:420px;
+  }
+  .display-font{
+    font-family: Georgia, 'Hiragino Mincho ProN', serif;
+  }
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    color:#E9DEC2; padding:4px 6px 18px;
+  }
+  .brand{
+    font-size:20px; letter-spacing:0.06em; display-font:; 
+  }
+  .brand small{display:block; font-size:10px; letter-spacing:0.25em; color:var(--gold); font-weight:600; margin-bottom:2px;}
+  .stats{display:flex; gap:14px; align-items:center; font-size:14px;}
+  .hearts{letter-spacing:2px; font-size:16px;}
+  .streak{
+    background:rgba(201,162,39,0.15); border:1px solid rgba(201,162,39,0.5);
+    border-radius:20px; padding:4px 10px; color:var(--gold); font-weight:600;
+  }
+
+  .passport{
+    position:relative;
+    background:var(--paper);
+    border-radius:18px;
+    box-shadow:0 30px 60px -20px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04);
+    padding:26px 22px 30px;
+    border:1px solid var(--paper-edge);
+    overflow:hidden;
+  }
+  .passport::before{
+    content:"";
+    position:absolute; inset:10px;
+    border:1px dashed rgba(27,42,46,0.18);
+    border-radius:10px;
+    pointer-events:none;
+  }
+  .page-label{
+    display:flex; justify-content:space-between; align-items:baseline;
+    font-size:11px; letter-spacing:0.18em; color:#8a7a55; text-transform:uppercase;
+    margin-bottom:14px;
+  }
+  .flag-stage{
+    position:relative;
+    background:#fff;
+    border:1px solid var(--paper-edge);
+    border-radius:12px;
+    height:168px;
+    display:flex; align-items:center; justify-content:center;
+    margin-bottom:22px;
+    box-shadow: inset 0 0 0 6px #fff, inset 0 0 0 7px var(--paper-edge);
+  }
+  .flag-emoji{
+    font-size:96px;
+    line-height:1;
+    filter: drop-shadow(0 6px 10px rgba(0,0,0,0.15));
+    transition: transform .25s ease;
+  }
+  .question{
+    text-align:center; font-size:13px; letter-spacing:0.1em; color:#6f6248;
+    text-transform:uppercase; margin-bottom:18px;
+  }
+  .choices{
+    display:grid; grid-template-columns:1fr 1fr; gap:10px;
+  }
+  .choice{
+    appearance:none; border:1px solid var(--paper-edge);
+    background:#fbf7ec;
+    border-radius:10px;
+    padding:14px 8px;
+    font-size:15px; font-weight:600; color:var(--text-dark);
+    cursor:pointer;
+    transition:transform .12s ease, box-shadow .12s ease;
+  }
+  .choice:active{ transform:scale(0.97); }
+  .choice.correct{ background:#e7f1ea; border-color:var(--stamp-green); color:var(--stamp-green); }
+  .choice.wrong{ background:#f6e6e2; border-color:var(--stamp-red); color:var(--stamp-red); }
+  .choice[disabled]{ cursor:default; }
+
+  .stamp{
+    position:absolute; top:50%; left:50%;
+    width:150px; height:150px;
+    margin:-75px 0 0 -75px;
+    display:flex; align-items:center; justify-content:center;
+    border:6px solid var(--stamp-green);
+    border-radius:50%;
+    color:var(--stamp-green);
+    font-weight:800; font-size:20px; letter-spacing:0.08em;
+    text-transform:uppercase;
+    opacity:0; transform:scale(2.4) rotate(-18deg);
+    pointer-events:none;
+    mix-blend-mode:multiply;
+  }
+  .stamp.wrong{ border-color:var(--stamp-red); color:var(--stamp-red); }
+  .stamp.show{
+    animation: stampDown .45s cubic-bezier(.2,.9,.3,1.2) forwards;
+  }
+  @keyframes stampDown{
+    0%{ opacity:0; transform:scale(2.4) rotate(-18deg); }
+    60%{ opacity:1; transform:scale(0.92) rotate(-10deg); }
+    100%{ opacity:1; transform:scale(1) rotate(-10deg); }
+  }
+
+  .footer-row{
+    display:flex; justify-content:space-between; align-items:center;
+    margin-top:18px; font-size:12px; color:#6f6248; letter-spacing:0.06em;
+  }
+  .progress{
+    flex:1; height:5px; background:var(--paper-edge); border-radius:3px; margin:0 10px;
+    overflow:hidden;
+  }
+  .progress-fill{ height:100%; background:var(--gold); width:0%; transition:width .3s ease; }
+
+  .screen{ text-align:center; color:#EFE6D2; padding:10px 4px 4px; }
+  .screen h1{ font-size:26px; margin:6px 0 10px; display-font:; }
+  .screen p{ font-size:14px; line-height:1.7; color:#cdbf9c; margin:0 0 20px; }
+  .gold-rule{ width:60px; height:2px; background:var(--gold); margin:0 auto 18px; }
+  .big-btn{
+    display:block; width:100%; appearance:none; border:none;
+    background:var(--gold); color:var(--ink-deep);
+    font-size:16px; font-weight:700; letter-spacing:0.06em;
+    padding:15px; border-radius:10px; cursor:pointer; margin-top:6px;
+  }
+  .big-btn:active{ transform:scale(0.98); }
+  .ghost-btn{
+    display:block; width:100%; appearance:none; background:transparent;
+    border:1px solid rgba(201,162,39,0.5); color:var(--gold);
+    font-size:14px; padding:12px; border-radius:10px; margin-top:10px; cursor:pointer;
+  }
+  .best-score{ font-size:13px; color:var(--gold); margin-top:14px; }
+  .hidden{ display:none; }
+  .score-final{ font-size:54px; font-weight:800; color:var(--gold); margin:4px 0; display-font:; }
+</style>
+</head>
+<body>
+<div class="device">
+
+  <div class="topbar" id="topbar">
+    <div class="brand"><small>WORLD ATLAS QUIZ</small>フラッグ旅券</div>
+    <div class="stats">
+      <div class="streak" id="streakBox">連続 0</div>
+      <div class="hearts" id="heartsBox">♥♥♥</div>
+    </div>
+  </div>
+
+  <div class="passport">
+
+    <!-- 開始画面 -->
+    <div id="startScreen" class="screen">
+      <div class="gold-rule"></div>
+      <h1>この国旗、わかる？</h1>
+      <p>世界の国旗を見て、正しい国名をスタンプで選ぼう。<br>ハートは3つ。間違えると1つ減るよ。</p>
+      <button class="big-btn" id="startBtn">旅をはじめる</button>
+      <div class="best-score" id="bestScoreLabel"></div>
+    </div>
+
+    <!-- ゲーム画面 -->
+    <div id="gameScreen" class="hidden">
+      <div class="page-label"><span id="pageNo">PAGE 01</span><span id="scoreLabel">SCORE 0</span></div>
+      <div class="flag-stage">
+        <div class="flag-emoji" id="flagEmoji">🏳️</div>
+        <div class="stamp" id="stampLayer">CORRECT</div>
+      </div>
+      <div class="question">この国旗の国はどこ？</div>
+      <div class="choices" id="choices"></div>
+      <div class="footer-row">
+        <span id="qIndex">1 / 12</span>
+        <div class="progress"><div class="progress-fill" id="progressFill"></div></div>
+      </div>
+    </div>
+
+    <!-- 終了画面 -->
+    <div id="endScreen" class="hidden screen">
+      <div class="page-label" style="justify-content:center;">VISA RESULT</div>
+      <div class="score-final" id="finalScore">0</div>
+      <p id="endMessage">お疲れさま！</p>
+      <button class="big-btn" id="retryBtn">もう一度挑戦する</button>
+      <button class="ghost-btn" id="changeRoundBtn">出題数を変える</button>
+    </div>
+
+  </div>
+</div>
+
+<script>
+(function(){
+  const FLAGS = [
+    ["🇯🇵","日本"],["🇰🇷","韓国"],["🇨🇳","中国"],["🇺🇸","アメリカ"],["🇬🇧","イギリス"],
+    ["🇫🇷","フランス"],["🇩🇪","ドイツ"],["🇮🇹","イタリア"],["🇪🇸","スペイン"],["🇵🇹","ポルトガル"],
+    ["🇧🇷","ブラジル"],["🇦🇷","アルゼンチン"],["🇨🇦","カナダ"],["🇲🇽","メキシコ"],["🇦🇺","オーストラリア"],
+    ["🇳🇿","ニュージーランド"],["🇮🇳","インド"],["🇮🇩","インドネシア"],["🇹🇭","タイ"],["🇻🇳","ベトナム"],
+    ["🇵🇭","フィリピン"],["🇲🇾","マレーシア"],["🇸🇬","シンガポール"],["🇸🇦","サウジアラビア"],["🇦🇪","UAE"],
+    ["🇹🇷","トルコ"],["🇪🇬","エジプト"],["🇲🇦","モロッコ"],["🇳🇬","ナイジェリア"],["🇿🇦","南アフリカ"],
+    ["🇷🇺","ロシア"],["🇺🇦","ウクライナ"],["🇵🇱","ポーランド"],["🇳🇱","オランダ"],["🇧🇪","ベルギー"],
+    ["🇨🇭","スイス"],["🇸🇪","スウェーデン"],["🇳🇴","ノルウェー"],["🇫🇮","フィンランド"],["🇩🇰","デンマーク"],
+    ["🇬🇷","ギリシャ"],["🇦🇹","オーストリア"],["🇮🇪","アイルランド"],["🇮🇸","アイスランド"],["🇭🇷","クロアチア"],
+    ["🇨🇿","チェコ"],["🇭🇺","ハンガリー"],["🇨🇱","チリ"],["🇨🇴","コロンビア"],["🇵🇪","ペルー"],
+    ["🇲🇦","モロッコ"],["🇰🇪","ケニア"],["🇪🇨","エクアドル"],["🇶🇦","カタール"],["🇮🇱","イスラエル"]
+  ];
+
+  const ROUND_OPTIONS = [10,12,20];
+  let roundLength = 12;
+  let pool = [];
+  let qIndex = 0;
+  let score = 0;
+  let streak = 0;
+  let lives = 3;
+  let locked = false;
+  let bestScore = Number(localStorage.getItem('flagpassport_best') || 0);
+
+  const el = id => document.getElementById(id);
+  const startScreen = el('startScreen');
+  const gameScreen = el('gameScreen');
+  const endScreen = el('endScreen');
+
+  function uniqueRandom(list, count, excludeList){
+    const copy = list.filter(item => !excludeList.includes(item));
+    for(let i=copy.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [copy[i],copy[j]] = [copy[j],copy[i]];
+    }
+    return copy.slice(0,count);
+  }
+
+  function shuffle(arr){
+    const a = arr.slice();
+    for(let i=a.length-1;i>0;i--){
+      const j = Math.floor(Math.random()*(i+1));
+      [a[i],a[j]] = [a[j],a[i]];
+    }
+    return a;
+  }
+
+  function buildPool(n){
+    return shuffle(FLAGS).slice(0, Math.min(n, FLAGS.length));
+  }
+
+  function updateTop(){
+    el('heartsBox').textContent = '♥'.repeat(lives) + '♡'.repeat(3-lives);
+    el('streakBox').textContent = '連続 ' + streak;
+  }
+
+  function renderBest(){
+    el('bestScoreLabel').textContent = bestScore > 0 ? ('これまでの最高得点：' + bestScore) : '';
+  }
+
+  function startGame(){
+    pool = buildPool(roundLength);
+    qIndex = 0; score = 0; streak = 0; lives = 3; locked = false;
+    updateTop();
+    startScreen.classList.add('hidden');
+    endScreen.classList.add('hidden');
+    gameScreen.classList.remove('hidden');
+    nextQuestion();
+  }
+
+  function nextQuestion(){
+    if(qIndex >= pool.length || lives <= 0){
+      return endGame();
+    }
+    locked = false;
+    const current = pool[qIndex];
+    el('flagEmoji').textContent = current[0];
+    el('pageNo').textContent = 'PAGE ' + String(qIndex+1).padStart(2,'0');
+    el('scoreLabel').textContent = 'SCORE ' + score;
+    el('qIndex').textContent = (qIndex+1) + ' / ' + pool.length;
+    el('progressFill').style.width = Math.round((qIndex/pool.length)*100) + '%';
+
+    const wrongChoices = uniqueRandom(FLAGS, 3, [current]).map(f => f[1]);
+    const options = shuffle([current[1], ...wrongChoices]);
+
+    const stamp = el('stampLayer');
+    stamp.classList.remove('show','wrong');
+    stamp.style.opacity = 0;
+
+    const box = el('choices');
+    box.innerHTML = '';
+    options.forEach(label => {
+      const btn = document.createElement('button');
+      btn.className = 'choice';
+      btn.textContent = label;
+      btn.addEventListener('click', () => handleAnswer(btn, label, current[1]));
+      box.appendChild(btn);
+    });
+  }
+
+  function handleAnswer(btn, picked, answer){
+    if(locked) return;
+    locked = true;
+    const isCorrect = picked === answer;
+    const stamp = el('stampLayer');
+
+    [...el('choices').children].forEach(c => c.disabled = true);
+
+    if(isCorrect){
+      btn.classList.add('correct');
+      score += 10 + streak*2;
+      streak += 1;
+      stamp.textContent = 'CORRECT';
+      stamp.classList.remove('wrong');
+    } else {
+      btn.classList.add('wrong');
+      [...el('choices').children].forEach(c => { if(c.textContent === answer) c.classList.add('correct'); });
+      streak = 0;
+      lives -= 1;
+      stamp.textContent = 'WRONG';
+      stamp.classList.add('wrong');
+    }
+    stamp.classList.add('show');
+    updateTop();
+
+    setTimeout(() => {
+      qIndex += 1;
+      nextQuestion();
+    }, 850);
+  }
+
+  function endGame(){
+    gameScreen.classList.add('hidden');
+    endScreen.classList.remove('hidden');
+    if(score > bestScore){
+      bestScore = score;
+      localStorage.setItem('flagpassport_best', String(bestScore));
+    }
+    el('finalScore').textContent = score;
+    let msg;
+    if(lives <= 0){ msg = 'ハートがなくなった…でも旅は続けられる。次はもっと正確に！'; }
+    else if(score >= roundLength*10) { msg = '見事、満点クリア！立派な旅券スタンプコレクションだ。'; }
+    else { msg = 'お疲れさま！この調子で世界の国旗を覚えていこう。'; }
+    el('endMessage').textContent = msg;
+    renderBest();
+  }
+
+  el('startBtn').addEventListener('click', startGame);
+  el('retryBtn').addEventListener('click', startGame);
+  el('changeRoundBtn').addEventListener('click', () => {
+    const idx = ROUND_OPTIONS.indexOf(roundLength);
+    roundLength = ROUND_OPTIONS[(idx+1) % ROUND_OPTIONS.length];
+    el('changeRoundBtn').textContent = '出題数を変える（現在：' + roundLength + '問）';
+    el('endMessage').textContent = '次は ' + roundLength + ' 問に設定したよ。もう一度挑戦してね。';
+  });
+
+  el('changeRoundBtn').textContent = '出題数を変える（現在：' + roundLength + '問）';
+  renderBest();
+})();
+</script>
+</body>
+</html>
